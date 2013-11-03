@@ -1,12 +1,19 @@
 #!/bin/bash
-#
+# 
 ##
-## Use openssl to extract modulus and exponente from p12 certificate 
+## FILE: p12tordf.sh
+##
+## DESCRIPTION: Use openssl to extract modulus and exponente from p12 certificate 
 ## and create user rdf profile
 ##
-## Author: Jose Faisca
-## Date:   2013.11	
+## AUTHOR: Jose Faisca
+##
+## DATE: 2013.11.1
 ## 
+## VERSION: 0.1
+##
+## USAGE: ./p12tordf.sh <inputfile.p12>
+##
 
 if [ -z "$1" ];then
     echo "Usage: $0 <inputfile.p12>" 
