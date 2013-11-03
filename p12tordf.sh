@@ -3,8 +3,8 @@
 ##
 ## FILE: p12tordf.sh
 ##
-## DESCRIPTION: Use openssl to extract modulus and exponente from p12 certificate 
-## and create user rdf profile
+## DESCRIPTION: Use openssl to extract modulus and exponente 
+## from p12 certificate and create user rdf profile
 ##
 ## AUTHOR: Jose Faisca
 ##
