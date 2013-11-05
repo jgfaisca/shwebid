@@ -18,7 +18,7 @@ if [ -z "$1" ];then
    echo "EXIT.."; exit 1
 fi
 
-# get pfx file name without extension
+# get input file name without extension
 pfx=$1
 FILENAME=${pfx##*/}
 FILENOEXT=${FILENAME%.*}
@@ -87,12 +87,12 @@ if [ -f $rdf ]; then
    rm -fv $rdf
 fi
 
-# create RDF file
+# create file
 echo "creating file $rdf ..."
 cat > $rdf << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <rdf:RDF
-        xmlns:air="http://www.daml.org/2001/10/html/airport-ont#"
+	xmlns:air="http://www.daml.org/2001/10/html/airport-ont#"
         xmlns:con="http://www.w3.org/2000/10/swap/pim/contact#"
         xmlns:dc="http://purl.org/dc/elements/1.1/"
         xmlns:foaf="http://xmlns.com/foaf/0.1/"
@@ -108,93 +108,25 @@ cat > $rdf << EOF
         xmlns:rel="http://purl.org/vocab/relationship/"
         xmlns:cert="http://www.w3.org/ns/auth/cert#"
         xmlns:rsa="http://www.w3.org/ns/auth/rsa#">
-
 <foaf:PersonalProfileDocument rdf:about="">
-<dc:title>${CN}, (FOAF Profile)</dc:title>
-<dc:description> </dc:description>
-<foaf:maker rdf:resource="shwebid"/>
-<foaf:primaryTopic rdf:resource="#"/>
-<admin:errorReportsTo rdf:resource=""/>
-<dc:date>${DATE}</dc:date>
+  <foaf:maker rdf:resource="http://zekaf.github.io/shwebid/"/>
+  <foaf:primaryTopic rdf:resource="#me"/>
 </foaf:PersonalProfileDocument>
-
-<!-- Me -->
-
-<foaf:Person rdf:about="${SAN}#me">
-
-<foaf:nick>${UNAME}</foaf:nick>
-<foaf:name>${CN}</foaf:name>
-<foaf:firstName>${FNAME}</foaf:firstName>
-<foaf:surname>${SNAME}</foaf:surname>
-<foaf:gender> </foaf:gender>
-<!-- <foaf:mbox rdf:resource=""/> -->
-<foaf:mbox_sha1sum>${EMAILSHA1}</foaf:mbox_sha1sum> 
-
-<foaf:birthday> </foaf:birthday>
-    <bio:event>
-      <bio:Birth>
-          <bio:date> </bio:date>
-          <bio:place> </bio:place>
-      </bio:Birth>
-    </bio:event>
-<bio:olb xml:lang="en"> </bio:olb>
-<bio:keywords> </bio:keywords>
-
-<foaf:interest rdf:resource=""/>
-
-<foaf:depiction dc:description="" rdf:resource=""/>
-
-<foaf:homepage>
-  <foaf:Document rdf:about="">
-  <dc:title> </dc:title>
-  <rdfs:seeAlso>
-  <rss:channel rdf:about="">
-  <dc:title> </dc:title>
-  </rss:channel>
-  </rdfs:seeAlso>
-  </foaf:Document>
-</foaf:homepage>
-
-<!-- Online Accounts SNS -->
-
-<foaf:holdsAccount>
-<foaf:OnlineAccount>
-  <foaf:accountServiceHomepage rdf:resource=""/>
-  <foaf:accountName> </foaf:accountName>
-  <foaf:homepage rdf:resource="" rdfs:label=""/>
-</foaf:OnlineAccount>
-</foaf:holdsAccount>
-
-<!-- Social Network -->
-
-<foaf:knows rdf:resource="" />
-
-<!-- Projects -->
-
-<foaf:currentProject rdf:resource=""/>
-<foaf:pastProject rdf:resource=""/>
-        
-<!-- additional Feeds -->
-
-<rdfs:seeAlso>
-<rss:channel rdf:about="">
-  <dc:title> </dc:title>
-  <dc:description> </dc:description>
-</rss:channel>
-</rdfs:seeAlso>
-
-<!-- certificate -->
-
-<cert:key>
-<cert:RSAPublicKey>
-  <rdfs:label>Made on ${DATE} on ${HOST} using shell script ${SCRIPTNAME} </rdfs:label>
-  <cert:modulus rdf:datatype="http://www.w3.org/2001/XMLSchema#hexBinary">${MODULUS}</cert:modulus>
-  <cert:exponent rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">${EXPONENT}</cert:exponent>
-</cert:RSAPublicKey>
+<foaf:Person rdf:about="#me">
+  <foaf:nick>${UNAME}</foaf:nick>
+  <foaf:name>${CN}</foaf:name>
+  <foaf:firstName>${FNAME}</foaf:firstName>
+  <foaf:surname>${SNAME}</foaf:surname>
+  <foaf:mbox_sha1sum>${EMAILSHA1}</foaf:mbox_sha1sum> 
+  <foaf:homepage rdf:resource="${SAN}"/>
+  <cert:key>
+  <cert:RSAPublicKey>
+	<rdfs:label>Made on ${DATE} on ${HOST} using shell script ${SCRIPTNAME} </rdfs:label>
+	<cert:modulus rdf:datatype="http://www.w3.org/2001/XMLSchema#hexBinary">${MODULUS}</cert:modulus>
+	<cert:exponent rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">${EXPONENT}</cert:exponent>
+  </cert:RSAPublicKey>
 </cert:key>
-
 </foaf:Person>
-
 </rdf:RDF>
 EOF
 
@@ -205,8 +137,10 @@ else
   echo "error creating file $rdf"; exit 1
 fi
 
-echo "Subject Alternative Name = $SAN"
+echo "WebID = $SAN"
 echo "Username/Nick = $UNAME"
+
+echo ...
 echo DONE..
 
 exit 1
