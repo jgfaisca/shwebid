@@ -1,28 +1,39 @@
 #!/bin/bash
 #
 ##
-## DESCRIPTION: Use openssl to generate a WebID
+## DESCRIPTION: Use openssl to extract modulus and exponent
+## from a PKCS#12/PFX file and create the user RDF file.
+## PFX files usually have extensions such as .pfx and .p12. 
 ##
 ## AUTHOR: Jose Faisca
 ##
 ## DATE: 2013.11.1
 ##
-## VERSION: 0.1
+## VERSION: 0.2
 ##
 
 if [ -z "$1" ];then
-   echo "Usage: $0 <filename>"
+   echo "Usage: $0 <PKCS#12/PFX file>"
+   echo "EXIT.."; exit 1
+fi
+
+# get input file name without extension
+pfx=$1
+FILENAME=${pfx##*/}
+FILENOEXT=${FILENAME%.*}
+#FILEEXTENSION=${pfx##*.}
+#BASEDIRECTORY=${pfx%$FILENAME}
+
+if [ ! -f $pfx ]; then
+   echo "the file '$pfx' does not exist!"
    echo "EXIT.."; exit 1
 fi
 
 SCRIPTNAME=${0##*/}		# Script file 
 DATE=$(date +"%Y-%m-%d")	# Date
 HOST=$(hostname)		# Host
-cert="$1-cert.pem"		# Certificate file
-key="$1-key.pem"		# Private key file
-csr="$1-cert.csr"		# Certifificate signing request
-pfx="$1.p12"			# PKCS#12 file 
-cfg="san.cfg"			# openssl configuration file
+cert="$FILENOEXT-cert.pem"	# Certificate file
+key="$FILENOEXT-key.pem"	# Private key file
 rdf=""				# RDF file
 MODULUS="" 			# Modulus
 EXPONENT=""	 		# Exponent
@@ -32,12 +43,7 @@ SNAME=""			# Surname
 EMAIL=""			# e-mail
 EMAILSHA1=""			# e-mail sha1 sum
 SAN=""				# Subject Alternative Name	
-#UNAME=$1			# Username/Nick
-
-if [ ! -f $cfg ]; then
-   echo "the file '$cfg' does not exist!"
-   echo "EXIT.."; exit 1
-fi
+UNAME=""			# Username/Nick
 
 # remove existing cert file
 if [ -f $cert ]; then
@@ -49,35 +55,10 @@ if [ -f $key ]; then
    rm -fv $key
 fi
 
-# remove existing csr file
-if [ -f $csr ]; then
-   rm -fv $csr
-fi
-
-
-#Generate a certificate request that contains the SAN
-$(openssl req -new -nodes -newkey rsa:2048 -sha256 -nodes -out $csr -keyout $key -config $cfg -reqexts v3_req)
-
-# Verify the CSR contains the X509v3 Subject Alternative Name.
-#openssl req -in $csr -noout -text
-
-#Create a self-signed certificate from the SAN certificate request.
-$(openssl x509 -req -in $csr -signkey $key -days 365 -out $cert -extfile $cfg -extensions v3_req)
-
-# view the contents of the certificate
-#openssl x509 -in $cert -noout -text
-
-# convert pem to PFX
-#openssl pkcs12 -export -out certificate.pfx -inkey privateKey.key -in certificate.crt -certfile CACert.crt
-$(openssl pkcs12 -export -inkey $key -in $cert -out $pfx)
-
-# get SAN and Username/Nick
-path=$(openssl x509 -in $cert -noout -text | grep URI: | cut -d":" -f2-)
-dirpath=${path%/*}
-base=${path##*/}
-SAN=$path
-UNAME=$base
-
+# get cert pem
+$(openssl pkcs12 -in $pfx -clcerts -nokeys -out $cert)
+# get public key
+$(openssl x509 -pubkey -in $cert -noout > $key)
 # get exponent
 EXPONENT=$(openssl rsa -in $key -pubin -noout -text | grep Exponent | cut -d" " -f2)
 # get modulus
@@ -138,11 +119,11 @@ cat > $rdf << EOF
   <foaf:mbox_sha1sum>${EMAILSHA1}</foaf:mbox_sha1sum> 
   <foaf:homepage rdf:resource="${SAN}"/>
   <cert:key>
-    <cert:RSAPublicKey>
+  <cert:RSAPublicKey>
 	<rdfs:label>Made on ${DATE} on ${HOST} using shell script ${SCRIPTNAME} </rdfs:label>
 	<cert:modulus rdf:datatype="http://www.w3.org/2001/XMLSchema#hexBinary">${MODULUS}</cert:modulus>
 	<cert:exponent rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">${EXPONENT}</cert:exponent>
-    </cert:RSAPublicKey>
+  </cert:RSAPublicKey>
 </cert:key>
 </foaf:Person>
 </rdf:RDF>
