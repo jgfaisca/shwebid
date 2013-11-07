@@ -17,23 +17,23 @@ if [ -z "$1" ];then
 fi
 
 SCRIPTNAME=${0##*/}		# Script file 
-DATE=$(date +"%Y-%m-%d")	# Date
+DATE=$(date +"%Y-%m-%d")# Date
 HOST=$(hostname)		# Host
 cert="$1-cert.pem"		# Certificate file
 key="$1-key.pem"		# Private key file
 csr="$1-cert.csr"		# Certifificate signing request
 pfx="$1.p12"			# PKCS#12 file 
 cfg="san.cfg"			# openssl configuration file
-rdf=""				# RDF file
-MODULUS="" 			# Modulus
-EXPONENT=""	 		# Exponent
-CN=""				# Common Name
-FNAME=""			# First Name
-SNAME=""			# Surname
-EMAIL=""			# e-mail
+rdf=""                  # RDF file
+MODULUS=""              # Modulus
+EXPONENT=""             # Exponent
+CN=""                   # Common Name
+FNAME=""                # First Name
+SNAME=""                # Surname
+EMAIL=""                # e-mail
 EMAILSHA1=""			# e-mail sha1 sum
-SAN=""				# Subject Alternative Name	
-#UNAME=$1			# Username/Nick
+SAN=""                  # Subject Alternative Name
+#UNAME=$1               # Username/Nick
 
 if [ ! -f $cfg ]; then
    echo "the file '$cfg' does not exist!"
