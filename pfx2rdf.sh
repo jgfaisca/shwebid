@@ -45,6 +45,7 @@ fi
 SCRIPTNAME=${0##*/}         	# Script file
 DATE=$(date +"%Y-%m-%d")        # Date
 HOST=$(hostname)            	# Host
+PLATFORM=$OSTYPE		# OS Platform
 cert="$FILENOEXT-cert.pem"      # Certificate file
 key="$FILENOEXT-key.pem"        # Private key file
 rdftpl="template.rdf"           # RDF template file
@@ -80,13 +81,7 @@ MODULUS=$(openssl x509 -in $cert -modulus -noout | sed 's/Modulus=//g' |
 sed 's/ //g' | tr '[:upper:]' '[:lower:]')
 # get email
 EMAIL=$(openssl x509 -in $cert -email -noout)
-
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    EMAILSHA1=$(echo -n $EMAIL | shasum -a 1 | awk '{print $1}')
-else
-    EMAILSHA1=$(echo -n $EMAIL | sha1sum | awk '{print $1}')
-fi
-
+EMAILSHA1=$(echo -n $EMAIL | openssl sha1)
 # get CN (Common Name)
 CN=$(openssl x509 -in $cert -noout -subject -nameopt multiline |
 grep commonName | cut -d'=' -f2 | sed -e 's/^ *//g' -e 's/ *$//g')
