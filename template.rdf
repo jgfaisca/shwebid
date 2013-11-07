@@ -15,7 +15,7 @@
         xmlns:rss="http://purl.org/rss/1.0/"
         xmlns:rel="http://purl.org/vocab/relationship/"
         xmlns:cert="http://www.w3.org/ns/auth/cert#"
-        xmlns:rsa="http://www.w3.org/ns/auth/rsa#">
+ 	xmlns:rsa="http://www.w3.org/ns/auth/rsa#">
 <foaf:PersonalProfileDocument rdf:about="">
   <foaf:maker rdf:resource="http://zekaf.github.io/shwebid/"/>
   <foaf:primaryTopic rdf:resource="#me"/>
@@ -28,11 +28,11 @@
   <foaf:mbox_sha1sum>${EMAILSHA1}</foaf:mbox_sha1sum> 
   <foaf:homepage rdf:resource="${SAN}"/>
   <cert:key>
-  <cert:RSAPublicKey>
+    <cert:RSAPublicKey>
 	<rdfs:label>Made by script ${SCRIPTNAME} on ${DATE} on ${HOST}</rdfs:label>
 	<cert:modulus rdf:datatype="http://www.w3.org/2001/XMLSchema#hexBinary">${MODULUS}</cert:modulus>
 	<cert:exponent rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">${EXPONENT}</cert:exponent>
-  </cert:RSAPublicKey>
-</cert:key>
+    </cert:RSAPublicKey>
+  </cert:key>
 </foaf:Person>
 </rdf:RDF>
