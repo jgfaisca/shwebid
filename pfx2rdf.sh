@@ -30,21 +30,21 @@ if [ ! -f $pfx ]; then
    echo "EXIT.."; exit 1
 fi
 
-SCRIPTNAME=${0##*/}         # Script file
+SCRIPTNAME=${0##*/}         	# Script file
 DATE=$(date +"%Y-%m-%d")	# Date
-HOST=$(hostname)            # Host
+HOST=$(hostname)            	# Host
 cert="$FILENOEXT-cert.pem"	# Certificate file
 key="$FILENOEXT-key.pem"	# Private key file
-rdf=""                      # RDF file
-MODULUS=""                  # Modulus
-EXPONENT=""                 # Exponent
-CN=""                       # Common Name
-FNAME=""                    # First Name
-SNAME=""                    # Surname
-EMAIL=""                    # e-mail
-EMAILSHA1=""                # e-mail sha1 sum
-SAN=""                      # Subject Alternative Name
-UNAME=""                    # Username/Nick
+rdf=""                      	# RDF file
+MODULUS=""                  	# Modulus
+EXPONENT=""                 	# Exponent
+CN=""                       	# Common Name
+FNAME=""                    	# First Name
+SNAME=""                    	# Surname
+EMAIL=""                    	# e-mail
+EMAILSHA1=""                	# e-mail sha1 sum
+SAN=""                      	# Subject Alternative Name
+UNAME=""                    	# Username/Nick
 
 # remove existing cert file
 if [ -f $cert ]; then
