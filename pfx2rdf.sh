@@ -82,7 +82,7 @@ sed 's/ //g' | tr '[:upper:]' '[:lower:]')
 EMAIL=$(openssl x509 -in $cert -email -noout)
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    EMAILSHA1=$(echo -n $EMAIL | shasum | awk '{print $1}')
+    EMAILSHA1=$(echo -n $EMAIL | shasum -a 1 | awk '{print $1}')
 else
     EMAILSHA1=$(echo -n $EMAIL | sha1sum | awk '{print $1}')
 fi
