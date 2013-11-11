@@ -2,7 +2,10 @@
 #!/bin/bash
 #
 ##
-## DESCRIPTION: Use openssl to generate a WebID
+## DESCRIPTION: Use OpenSSL to generate a WebID
+##
+## UID example:
+## http://example.com/people/<NICKNAME>
 ##
 ## AUTHOR: Jose Faisca
 ##
@@ -11,155 +14,215 @@
 ## VERSION: 0.1
 ##
 
-if [ -z "$1" ];then
-   echo "Usage: $0 <filename>"
-   echo "EXIT.."; exit 1
+
+function parse(){
+# Read in template file and replace variables
+# Usage: parse template_file > outputfile
+while IFS='' read -r line; do
+    line=${line//\"/\\\"}
+    line=${line//\`/\\\`}
+    line=${line//\$/\\\$}
+    line=${line//\\\${/\${}
+    eval "echo \"$line\"";
+    done < ${1}
+}
+
+function usage(){
+  echo -e "usage: $0 args"
+  echo -e " -b | --bits arg         bits for encryption"
+  echo -e "                         default = $DBITS bits"
+  echo -e " -c | --cn arg           common name (CN)"
+  echo -e "                         YOUR name
+  echo -e " -d | --days arg         how long to certify for"
+  echo -e "                         default = $DDAYS days"
+  echo -e " -m | --email arg        User e-mail address"
+  echo -e " -n | --nick arg         Username/Nick"
+  echo -e " -o | --output arg       output directory"
+  echo -e "                         default = $OUT"
+  echo -e " -p | --password arg     password for encryption"
+  echo -e "                         no encription by default"
+  echo -e " -u | --uid arg          user identifier (UID)"
+  echo -e "                         example http://www.example.com/foaf.rdf#me"
+  echo -e " -h | --help             print help\n"
+}
+
+
+UIDENTIFIER=""                  # User Identifier (UID)
+UNAME=""                        # Username/Nick
+OUT="./output/"                 # Default output directory
+ENCRIPT="no"                    # Encript keys (yes/no)
+DDAYS="365"                     # How long to certify for
+DBITS="2048"                    # Default bits
+DEFAULTPWD=""                   # Default password
+SCRIPTNAME=${0##*/}             # Script file
+CN=""                           # Common Name
+FNAME=""                        # First Name
+SNAME=""                        # Surname
+EMAIL=""                        # e-mail
+EMAILSHA1=""                    # e-mail sha1 sum
+DATE=$(date +"%Y-%m-%d")        # Date
+HOST=$(hostname)                # Host
+MODULUS=""                      # Modulus
+EXPONENT=""                     # Exponent
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -b|--bits)
+            DBITS="$2"
+            shift
+            ;;
+    -c|--cn)
+            CN="$2"
+            shift
+            ;;
+    -d|--days)
+            DDAYS="$2"
+            shift
+            ;;
+    -e|--email)
+            EMAIL="$2"
+            shift
+            if [[ ! $EMAIL == ?*@?*.?* ]] ;then
+                echo "invalid email"
+                usage; exit 1
+            fi
+            ;;
+    -n|--nick)
+            UNAME="$2"
+            shift
+            ;;
+    -o|--output)
+            OUT="$2"
+            shift
+            ;;
+    -p|--password)
+            DEFAULTPWD="$2"
+            ENCRYPT="yes"
+            shift
+            ;;
+    -u|--uid)
+            UIDENTIFIER="$2"
+            shift
+            # control UID input
+            if [[ ! $UIDENTIFIER =~ ^http://*|^https://* ]] ;then
+                echo "invalid UID"
+                usage; exit 1
+            fi
+            ;;
+    -h| --help)
+            usage; exit 1
+            ;;
+            *)
+            echo -e "uknown option $1"
+            usage; exit 1
+  esac
+  shift
+done
+
+# control UID
+if [ -z "$UIDENTIFIER" -a "$UIDENTIFIER" = "" ]; then
+    echo -e "missing UID argument"
+    usage; exit 1
 fi
 
-SCRIPTNAME=${0##*/}		# Script file 
-DATE=$(date +"%Y-%m-%d")# Date
-HOST=$(hostname)		# Host
-cert="$1-cert.pem"		# Certificate file
-key="$1-key.pem"		# Private key file
-csr="$1-cert.csr"		# Certifificate signing request
-pfx="$1.p12"			# PKCS#12 file 
-cfg="san.cfg"			# openssl configuration file
-rdf=""                  # RDF file
-MODULUS=""              # Modulus
-EXPONENT=""             # Exponent
-CN=""                   # Common Name
-FNAME=""                # First Name
-SNAME=""                # Surname
-EMAIL=""                # e-mail
-EMAILSHA1=""			# e-mail sha1 sum
-SAN=""                  # Subject Alternative Name
-#UNAME=$1               # Username/Nick
-
-if [ ! -f $cfg ]; then
-   echo "the file '$cfg' does not exist!"
-   echo "EXIT.."; exit 1
+# get nick from URI
+if [ -z "$UNAME" -a "$UNAME" = "" ]; then
+    UNAME="${UIDENTIFIER##*/}"
+    UNAME="${UNAME%%.*}"
+    UNAME="${UNAME%%#*}"
 fi
 
-# remove existing cert file
-if [ -f $cert ]; then
-   rm -fv $cert
+# get first name from CN
+FNAME=$(echo $CN | cut -d' ' -f1)
+# get surname from CN
+SNAME=$(echo $CN | cut -d' ' -f2-)
+SNAME=${SNAME##* }
+# get email sha1 sum
+EMAILSHA1=$(echo -n $EMAIL | openssl sha1)
+
+# files variables
+cert="$UNAME-webid.pem"         # User certificate file
+pfx="$UNAME.p12"                # PKCS12 file
+cfgtpl="template.cfg"         	# OpenSSL template configuration file
+cfg="$UNAME-openssl.cfg"        # OpenSSL configuration file
+rdftpl="template.rdf"           # RDF template file
+rdf="$UNAME.rdf"                # RDF output file
+
+# control OpenSSL template file
+if [ ! -f $cfgtpl ]; then
+   echo "the file $cfgtpl does not exist!"
+   echo -e "EXIT..\n"; exit 1
 fi
 
-# remove existing key file
-if [ -f $key ]; then
-   rm -fv $key
+# control RDF template file
+if [ ! -f $rdftpl ]; then
+   echo "the file $rdftpl does not exist!"
+   echo -e "EXIT..\n"; exit 1
 fi
 
-# remove existing csr file
-if [ -f $csr ]; then
-   rm -fv $csr
+# control if default output directory exist.
+if [ ! -d "$OUT" ];then
+   mkdir -v $OUT
 fi
 
+# remove exixting files
+$(rm -fv $OUT$UNAME-*.*)
 
-#Generate a certificate request that contains the SAN
-$(openssl req -new -nodes -newkey rsa:2048 -sha256 -nodes -out $csr -keyout $key -config $cfg -reqexts v3_req)
+# creating OpenSSL configuration file
+# parse template file and replace variables
+parse $cfgtpl > $OUT$cfg
 
-# Verify the CSR contains the X509v3 Subject Alternative Name.
-#openssl req -in $csr -noout -text
+if [ ! -f $OUT$cfg ]; then
+   echo "error creating file $OUT$cfg"
+   echo -e "EXIT..\n"; exit 1
+fi
 
-#Create a self-signed certificate from the SAN certificate request.
-$(openssl x509 -req -in $csr -signkey $key -days 365 -out $cert -extfile $cfg -extensions v3_req)
+# generate a PEM self-signed certificate file that contains the SAN
+echo $(openssl req -new -x509 -batch -config $OUT$cfg -out $OUT$cert \
+-pubkey -extensions req_ext -keyout $OUT$cert -passout pass:$DEFAULTPWD)
 
-# view the contents of the certificate
-#openssl x509 -in $cert -noout -text
+# check certificate file
+if [ ! -f $OUT$cert ]; then
+   echo "error creating file $OUT$cert"
+   echo -e "EXIT..\n"; exit 1
+fi
 
-# convert pem to PFX
-#openssl pkcs12 -export -out certificate.pfx -inkey privateKey.key -in certificate.crt -certfile CACert.crt
-$(openssl pkcs12 -export -inkey $key -in $cert -out $pfx)
+# convert pem to p12
+$(openssl pkcs12 -export -clcerts -name "$UNAME" -in $OUT$cert \
+-inkey $OUT$cert -out $OUT$pfx -passin pass:$DEFAULTPWD -passout pass:$DEFAULTPWD)
 
-# get SAN and Username/Nick
-path=$(openssl x509 -in $cert -noout -text | grep URI: | cut -d":" -f2-)
-dirpath=${path%/*}
-base=${path##*/}
-SAN=$path
-UNAME=$base
+# check p12 file
+if [ ! -f $OUT$pfx ]; then
+   echo "error creating file $OUT$pfx"
+   echo -e "EXIT..\n"; exit 1
+fi
 
 # get exponent
-EXPONENT=$(openssl rsa -in $key -pubin -noout -text | grep Exponent | cut -d" " -f2)
-# get modulus
-MODULUS=$(openssl x509 -in $cert -modulus -noout | sed 's/Modulus=//g' |
+EXPONENT=$(openssl rsa -in $OUT$cert -pubin -noout -text | grep Exponent | cut -d" " -f2)
+
+# get modulus from certificate
+MODULUS=$(openssl x509 -in $OUT$cert -modulus -noout | sed 's/Modulus=//g' |
 sed 's/ //g' | tr '[:upper:]' '[:lower:]')
-# get email
-EMAIL=$(openssl x509 -in $cert -email -noout)
-EMAILSHA1=$(echo -n $EMAIL | sha1sum | awk '{print $1}')
-# get CN (Common Name)
-CN=$(openssl x509 -in $cert -noout -subject -nameopt multiline |
-grep commonName | cut -d'=' -f2 | sed -e 's/^ *//g' -e 's/ *$//g')
-# get Firstname
-FNAME=$(echo $CN | cut -d" " -f1)
-# get Surname
-SNAME=$(echo $CN | cut -d" " -f2-)
-# get SAN 
-SAN=$(openssl x509 -in $cert -noout -text | grep URI: | cut -d":" -f2-)
-# get Username/Nick
-UNAME=${SAN##*/}
-# set RDF output file name 
-rdf="$UNAME.rdf"
 
-# remove existing RDF file
-if [ -f $rdf ]; then
-   rm -fv $rdf
-fi
 
-# create file
-echo "creating file $rdf ..."
-cat > $rdf << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<rdf:RDF
-	xmlns:air="http://www.daml.org/2001/10/html/airport-ont#"
-        xmlns:con="http://www.w3.org/2000/10/swap/pim/contact#"
-        xmlns:dc="http://purl.org/dc/elements/1.1/"
-        xmlns:foaf="http://xmlns.com/foaf/0.1/"
-        xmlns:geo="http://www.w3.org/2003/01/geo/wgs84_pos#"
-        xmlns:owl="http://www.w3.org/2002/07/owl#"
-        xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-        xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
-        xmlns:vCard="http://www.w3.org/2001/vcard-rdf/3.0#"
-        xmlns:sioc="http://rdfs.org/sioc/ns#"
-        xmlns:bio="http://purl.org/vocab/bio/0.1/"
-        xmlns:admin="http://webns.net/mvcb/"
-        xmlns:rss="http://purl.org/rss/1.0/"
-        xmlns:rel="http://purl.org/vocab/relationship/"
-        xmlns:cert="http://www.w3.org/ns/auth/cert#"
-        xmlns:rsa="http://www.w3.org/ns/auth/rsa#">
-<foaf:PersonalProfileDocument rdf:about="">
-  <foaf:maker rdf:resource="http://zekaf.github.io/shwebid/"/>
-  <foaf:primaryTopic rdf:resource="#me"/>
-</foaf:PersonalProfileDocument>
-<foaf:Person rdf:about="#me">
-  <foaf:nick>${UNAME}</foaf:nick>
-  <foaf:name>${CN}</foaf:name>
-  <foaf:firstName>${FNAME}</foaf:firstName>
-  <foaf:surname>${SNAME}</foaf:surname>
-  <foaf:mbox_sha1sum>${EMAILSHA1}</foaf:mbox_sha1sum> 
-  <foaf:homepage rdf:resource="${SAN}"/>
-  <cert:key>
-    <cert:RSAPublicKey>
-	<rdfs:label>Made on ${DATE} on ${HOST} using shell script ${SCRIPTNAME} </rdfs:label>
-	<cert:modulus rdf:datatype="http://www.w3.org/2001/XMLSchema#hexBinary">${MODULUS}</cert:modulus>
-	<cert:exponent rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">${EXPONENT}</cert:exponent>
-    </cert:RSAPublicKey>
-</cert:key>
-</foaf:Person>
-</rdf:RDF>
-EOF
+# create RDF file
+# parse template and replace variables
+parse $rdftpl > $OUT$rdf
 
 # check RDF file
-if [ -f $rdf ]; then
-  echo "RDF file = $rdf (OK!)"         
-else
-  echo "error creating file $rdf"; exit 1
+if [ ! -f $OUT$rdf ]; then
+  echo "error creating file $OUT$rdf"
+  echo -e "EXIT..\n"; exit 1
 fi
 
-echo "WebID = $SAN"
 echo "Username/Nick = $UNAME"
-
-echo ...
-echo DONE..
+echo "Common Name = $CN"
+echo "e-mail = $EMAIL"
+echo "UID = $UIDENTIFIER"
+echo "WebID certificate file = $OUT$cert"
+echo "PKCS12 file = $OUT$pfx"
+echo "RDF file = $OUT$rdf"
+echo "Password = $DEFAULTPWD"
+echo -e "...\n"
 
 exit 1

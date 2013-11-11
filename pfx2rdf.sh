@@ -13,17 +13,18 @@
 ## VERSION: 0.2
 ##
 
-function parse(){
+
+#function parse(){
 # Read in template file and replace variables
 # Usage: parse <template_file>
-while IFS='' read -r line; do
-    line=${line//\"/\\\"}
-    line=${line//\`/\\\`}
-    line=${line//\$/\\\$}
-    line=${line//\\\${/\${}
-    eval "echo \"$line\"";
-    done < ${1}
-}
+#while IFS='' read -r line; do
+#    line=${line//\"/\\\"}
+#    line=${line//\`/\\\`}
+#    line=${line//\$/\\\$}
+#    line=${line//\\\${/\${}
+#    eval "echo \"$line\"";
+#    done < ${1}
+#}
 
 if [ -z "$1" ];then
    echo "Usage: $0 <PKCS#12/PFX file>"
@@ -45,7 +46,7 @@ fi
 SCRIPTNAME=${0##*/}         	# Script file
 DATE=$(date +"%Y-%m-%d")        # Date
 HOST=$(hostname)            	# Host
-PLATFORM=$OSTYPE		# OS Platform
+PLATFORM=$OSTYPE                # OS Platform
 cert="$FILENOEXT-cert.pem"      # Certificate file
 key="$FILENOEXT-key.pem"        # Private key file
 rdftpl="template.rdf"           # RDF template file
